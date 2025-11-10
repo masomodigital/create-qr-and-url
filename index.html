@@ -19,10 +19,11 @@
   </style>
 </head>
 <body>
-  <h2>User QR Generator</h2>
-  <input type="text" id="nid" placeholder="Enter National ID">
-  <button onclick="fetchUser()">Generate QR</button>
-
+  <h2>User Webpage and QR Generator</h2>
+  <input type="text" id="nid" placeholder="Enter National ID/User ID">
+  <button onclick="fetchUser()" style="background-color:#28a745; color:white; border:none; cursor:pointer; padding:10px 20px; font-size:16px;">
+  Generate QR
+</button>
   <div id="loader">Generating QR code, please wait...</div>
   <div id="userDetails"></div>
   <div id="qr"></div>
