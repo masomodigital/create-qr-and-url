@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>User QR Generator</title>
+  <style>
+    body { font-family: "Helvetica Neue", Helvetica, Arial, sans-serif; padding: 30px; background: #f5f5f5; text-align: center; }
+    input, button { padding: 10px; margin: 10px 0; width: 220px; font-size: 16px; }
+    #qr { margin-top: 20px; padding: 15px; border: 2px solid #333; display: inline-block; background: #fff; }
+    #userDetails { margin-top: 15px; font-size: 16px; }
+    #loader { display:none; font-weight: bold; color: green; margin-top: 10px; }
+    a { color: #0066cc; text-decoration: underline; }
+    #downloadBtn { background-color: #28a745; color: white; border: none; cursor: pointer; }
+    #downloadBtn:hover { background-color: #218838; }
+    #copyBtn { background-color: #007bff; color: white; border: none; cursor: pointer; padding: 8px 12px; margin-left: 5px; }
+    #copyBtn:hover { background-color: #0069d9; }
+  </style>
+</head>
+<body>
+  <h2>User QR Generator</h2>
+  <input type="text" id="nid" placeholder="Enter National ID">
+  <button onclick="fetchUser()">Generate QR</button>
+
+  <div id="loader">Generating QR code, please wait...</div>
+  <div id="userDetails"></div>
+  <div id="qr"></div>
+  <div style="margin-top:10px;">
+    <button id="downloadBtn" style="display:none;" onclick="downloadPDF()">Download PDF</button>
+    <button id="copyBtn" style="display:none;" onclick="copyURL()">Copy URL</button>
+  </div>
+
+  <!-- Libraries -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/qrcodejs/qrcode.min.js"></script>
+
+  <script>
+    const WORKER_URL = "https://calm-wind-a74f.dmaundu02.workers.dev/";
+
+    async function fetchUser() {
+      const nid = document.getElementById('nid').value.trim();
+      if (!nid) { alert("Please enter a National ID."); return; }
+
+      document.getElementById('loader').style.display = 'block';
+      document.getElementById('userDetails').innerHTML = '';
+      document.getElementById('qr').innerHTML = '';
+      document.getElementById('downloadBtn').style.display = 'none';
+      document.getElementById('copyBtn').style.display = 'none';
+
+      try {
+        const response = await fetch(WORKER_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ nationalId: nid })
+        });
+
+        const data = await response.json();
+        displayUser(data);
+
+      } catch (err) {
+        document.getElementById('loader').style.display = 'none';
+        document.getElementById('userDetails').innerHTML = `<p style="color:red;">Error: ${err.message}</p>`;
+      }
+    }
+
+    function displayUser(data) {
+      document.getElementById('loader').style.display = 'none';
+
+      if (!data.success) {
+        document.getElementById('userDetails').innerHTML = `<p style="color:red;">${data.message}</p>`;
+        return;
+      }
+
+      // Add leading zero to phone if missing
+      let phone = data.phone.toString();
+      if (!phone.startsWith('0')) phone = '0' + phone;
+
+      const userHTML = `
+        <p><b>Name:</b> ${data.name}</p>
+        <p><b>Phone:</b> ${phone}</p>
+        <p><b>Webpage URL:</b> <a href="${data.personalURL}" target="_blank">${data.personalURL}</a></p>
+      `;
+      document.getElementById('userDetails').innerHTML = userHTML;
+
+      // Generate QR code inside box
+      const qrDiv = document.getElementById('qr');
+      qrDiv.innerHTML = '';
+      new QRCode(qrDiv, { text: data.personalURL, width: 200, height: 200 });
+
+      // Show buttons
+      document.getElementById('downloadBtn').style.display = 'inline-block';
+      document.getElementById('copyBtn').style.display = 'inline-block';
+
+      window.userData = { ...data, phone };
+    }
+
+    async function downloadPDF() {
+      if (!window.userData) return;
+
+      const div = document.createElement('div');
+      div.style.padding = "30px";
+      div.style.width = "320px";
+      div.style.textAlign = "center";
+      div.style.background = "#fff";
+      div.style.border = "2px solid #333";
+
+      // QR code for PDF
+      const tempQrDiv = document.createElement('div');
+      new QRCode(tempQrDiv, { text: window.userData.personalURL, width: 200, height: 200 });
+
+      div.innerHTML = `
+        <h2>User Details</h2>
+        <p><b>Name:</b> ${window.userData.name}</p>
+        <p><b>Phone:</b> ${window.userData.phone}</p>
+        <p><b>Webpage URL:</b> ${window.userData.personalURL}</p>
+      `;
+      div.appendChild(tempQrDiv);
+
+      document.body.appendChild(div);
+
+      const canvas = await html2canvas(div, { scale: 2 });
+      const imgData = canvas.toDataURL('image/png');
+
+      const { jsPDF } = window.jspdf;
+      const pdf = new jsPDF();
+      pdf.addImage(imgData, 'PNG', 10, 10, 180, 180);
+      pdf.save(`${window.userData.name}_QR.pdf`);
+
+      document.body.removeChild(div);
+    }
+
+    function copyURL() {
+      if (!window.userData) return;
+      navigator.clipboard.writeText(window.userData.personalURL)
+        .then(() => alert("URL copied to clipboard!"))
+        .catch(() => alert("Failed to copy URL."));
+    }
+  </script>
+</body>
+</html>
