@@ -16,6 +16,8 @@
     #downloadBtn:hover { background-color: #218838; }
     #copyBtn { background-color: #007bff; color: white; border: none; cursor: pointer; padding: 8px 12px; margin-left: 5px; }
     #copyBtn:hover { background-color: #0069d9; }
+    .credits-msg { color: red; font-weight: bold; margin-top: 10px; }
+    .buy-btn { display:inline-block; padding:8px 12px; background-color:green; color:white; font-weight:bold; border-radius:5px; text-decoration:none; margin-top:10px; }
   </style>
 </head>
 <body>
@@ -23,7 +25,7 @@
   <input type="text" id="nid" placeholder="Enter National ID/User ID">
   <button onclick="fetchUser()" style="background-color:#28a745; color:white; border:none; cursor:pointer; padding:10px 20px; font-size:16px;">
   Generate QR
-</button>
+  </button>
   <div id="loader">Generating QR code, please wait...</div>
   <div id="userDetails"></div>
   <div id="qr"></div>
@@ -70,7 +72,14 @@
       document.getElementById('loader').style.display = 'none';
 
       if (!data.success) {
-        document.getElementById('userDetails').innerHTML = `<p style="color:red;">${data.message}</p>`;
+        document.getElementById('userDetails').innerHTML = `<p class="credits-msg">${data.message}</p>`;
+        if (data.message.includes("credits")) {
+          document.getElementById('userDetails').innerHTML += `
+            <a href="https://masomodigital.github.io/BUY-CREDITS-PAGE/" class="buy-btn" target="_blank">
+              Buy SMS Credits
+            </a>
+          `;
+        }
         return;
       }
 
@@ -81,6 +90,7 @@
       const userHTML = `
         <p><b>Name:</b> ${data.name}</p>
         <p><b>Phone:</b> ${phone}</p>
+        <p><b>Credits:</b> ${data.credits}</p>
         <p><b>Webpage URL:</b> <a href="${data.personalURL}" target="_blank">${data.personalURL}</a></p>
       `;
       document.getElementById('userDetails').innerHTML = userHTML;
@@ -115,6 +125,7 @@
         <h2>User Details</h2>
         <p><b>Name:</b> ${window.userData.name}</p>
         <p><b>Phone:</b> ${window.userData.phone}</p>
+        <p><b>Credits:</b> ${window.userData.credits}</p>
         <p><b>Webpage URL:</b> ${window.userData.personalURL}</p>
       `;
       div.appendChild(tempQrDiv);
